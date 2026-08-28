@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/finance_provider.dart';
 import 'screens/dashboard_screen.dart';
@@ -17,11 +17,11 @@ class FinanceApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => FinanceProvider()..loadData(),
       child: MaterialApp(
-        title: 'Finance App',
+        title: 'MeuLimite',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
+        theme: AppTheme.darkTheme,
         darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.dark,
         home: const DashboardScreen(),
       ),
     );
