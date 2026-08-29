@@ -1,4 +1,4 @@
-﻿import 'package:uuid/uuid.dart';
+import 'package:uuid/uuid.dart';
 
 class CreditCard {
   final String id;

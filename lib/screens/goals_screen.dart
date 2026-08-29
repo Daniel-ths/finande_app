@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -25,7 +25,7 @@ class GoalsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: (provider.goalsList?.isEmpty ?? true)
+      body: provider.goals.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -36,7 +36,7 @@ class GoalsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Crie uma meta e comece a juntar',
-                    style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.7), fontSize: 13),
+                    style: TextStyle(color: AppColors.textMuted.withOpacity(0.7), fontSize: 13),
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
@@ -45,47 +45,35 @@ class GoalsScreen extends StatelessWidget {
                     label: const Text('Nova meta'),
                   ),
                 ],
-              ).animate().fadeIn().scale(begin: const Offset(0.95, 0.95)),
+              ).animate().fadeIn(),
             )
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               children: [
-                // Resumo do valor reservado
-                if ((provider.totalReservedInGoals ?? 0) > 0)
+                if (provider.totalReservedInGoals > 0)
                   Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14)),
                     child: Row(
                       children: [
                         const Icon(Icons.lock_outline, color: AppColors.primary, size: 20),
                         const SizedBox(width: 12),
                         const Expanded(
-                          child: Text(
-                            'Reservado nas metas',
-                            style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-                          ),
+                          child: Text('Reservado nas metas', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
                         ),
                         Text(
-                          currency.format(provider.totalReservedInGoals ?? 0),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                            fontSize: 15,
-                          ),
+                          currency.format(provider.totalReservedInGoals),
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary, fontSize: 15),
                         ),
                       ],
                     ),
-                  ).animate().fadeIn(),
-
-                ...(provider.goalsList ?? []).asMap().entries.map((entry) {
+                  ),
+                ...provider.goals.asMap().entries.map((entry) {
                   return _GoalCard(goal: entry.value, currency: currency)
                       .animate()
                       .fadeIn(delay: (60 * entry.key).ms, duration: 400.ms)
-                      .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic);
+                      .slideY(begin: 0.12, end: 0);
                 }),
               ],
             ),
@@ -158,7 +146,7 @@ class GoalsScreen extends StatelessWidget {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: selected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.surfaceElevated,
+                          color: selected ? AppColors.primary.withOpacity(0.2) : AppColors.surfaceElevated,
                           borderRadius: BorderRadius.circular(12),
                           border: selected ? Border.all(color: AppColors.primary, width: 1.5) : null,
                         ),
@@ -186,7 +174,7 @@ class GoalsScreen extends StatelessWidget {
                   targetAmount: target,
                   deadline: selectedDeadline,
                   icon: selectedIcon,
-                ), 0);
+                ));
                 Navigator.pop(ctx);
               },
               child: const Text('Criar'),
@@ -211,10 +199,7 @@ class _GoalCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -226,10 +211,7 @@ class _GoalCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      goal.name,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
-                    ),
+                    Text(goal.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text)),
                     const SizedBox(height: 2),
                     Text(
                       '${currency.format(goal.currentAmount)} de ${currency.format(goal.targetAmount)}',
@@ -259,18 +241,10 @@ class _GoalCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-
-          // Status + sugestão mensal
           if (goal.isCompleted)
-            const Text(
-              'Meta concluída! 🎉',
-              style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
-            )
+            const Text('Meta concluída!', style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600))
           else ...[
-            Text(
-              'Faltam ${currency.format(goal.remaining)}',
-              style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-            ),
+            Text('Faltam ${currency.format(goal.remaining)}', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
             if (goal.deadline != null && goal.monthlyNeeded > 0) ...[
               const SizedBox(height: 4),
               Text(
@@ -279,7 +253,6 @@ class _GoalCard extends StatelessWidget {
               ),
             ],
           ],
-
           const SizedBox(height: 14),
           Row(
             children: [
@@ -289,7 +262,6 @@ class _GoalCard extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: const BorderSide(color: AppColors.border),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   child: const Text('Adicionar'),
                 ),
@@ -297,13 +269,10 @@ class _GoalCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: goal.currentAmount > 0
-                      ? () => _showRemoveMoneyDialog(context, provider, goal)
-                      : null,
+                  onPressed: goal.currentAmount > 0 ? () => _showRemoveMoneyDialog(context, provider, goal) : null,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textMuted,
                     side: const BorderSide(color: AppColors.border),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   child: const Text('Retirar'),
                 ),
@@ -330,14 +299,11 @@ class _GoalCard extends StatelessWidget {
           autofocus: true,
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted))),
           FilledButton(
             onPressed: () {
               final amount = double.tryParse(controller.text.replaceAll(',', '.'));
-              if (amount != null && amount > 0) provider.addGoal(goal.id as Goal, amount);
+              if (amount != null && amount > 0) provider.addToGoal(goal.id, amount);
               Navigator.pop(ctx);
             },
             child: const Text('Adicionar'),
@@ -362,10 +328,7 @@ class _GoalCard extends StatelessWidget {
           autofocus: true,
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted))),
           FilledButton(
             onPressed: () {
               final amount = double.tryParse(controller.text.replaceAll(',', '.'));

@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import '../models/money_item.dart';
 import '../providers/finance_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_transitions.dart';
@@ -13,6 +13,7 @@ import 'monthly_sheet_screen.dart';
 import 'goals_screen.dart';
 import 'installments_screen.dart';
 import 'recurring_analysis_screen.dart';
+import 'money_items_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -90,7 +91,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: const BoxDecoration(
                 color: AppColors.background,
-                border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
+                border: Border(
+                  top: BorderSide(color: AppColors.border, width: 0.5),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -177,7 +180,7 @@ class _TabItem extends StatelessWidget {
 }
 
 class _HomeTab extends StatelessWidget {
-  const _HomeTab({super.key});
+  const _HomeTab();
 
   @override
   Widget build(BuildContext context) {
@@ -195,31 +198,30 @@ class _HomeTab extends StatelessWidget {
       children: [
         const Text(
           'Disponível agora',
-          style: TextStyle(fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w500),
-        ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.15, end: 0),
-
-        const SizedBox(height: 4),
-
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textMuted,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 6),
         Text(
           currency.format(provider.realAvailableBalance),
           style: const TextStyle(
-            fontSize: 40,
+            fontSize: 42,
             fontWeight: FontWeight.w800,
             color: AppColors.text,
             letterSpacing: -1.2,
           ),
-        ).animate().fadeIn(delay: 80.ms, duration: 500.ms).slideY(begin: 0.2, end: 0),
-
-        const SizedBox(height: 4),
-
+        ),
+        const SizedBox(height: 6),
         Text(
-          'Nas contas: ${currency.format(provider.totalBalance)}',
+          'Saldo em contas: ${currency.format(provider.totalBalance)}',
           style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-        ).animate().fadeIn(delay: 150.ms),
+        ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 28),
 
-        // Pode gastar hoje
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
@@ -228,196 +230,251 @@ class _HomeTab extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.successSoft,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.bolt, color: AppColors.primary, size: 18),
-              ),
+              const Icon(Icons.bolt, color: AppColors.primary, size: 20),
               const SizedBox(width: 12),
-              const Expanded(
-                child: Text('Pode gastar hoje', style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
+              const Text(
+                'Pode gastar hoje',
+                style: TextStyle(fontSize: 14, color: AppColors.textMuted),
               ),
+              const Spacer(),
               Text(
                 currency.format(provider.dailyLimit),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),
-        ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+        ),
 
-        const SizedBox(height: 28),
+        const SizedBox(height: 32),
 
-        // Este mês
         const Text(
           'Este mês',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
-        ).animate().fadeIn(delay: 250.ms),
-
-        const SizedBox(height: 12),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.text,
+          ),
+        ),
+        const SizedBox(height: 14),
 
         Row(
           children: [
             Expanded(
-              child: _InfoCard(
+              child: _SimpleCard(
                 label: 'Receitas',
                 value: currency.format(provider.monthlyIncome),
-                color: AppColors.primary,
-              ).animate().fadeIn(delay: 300.ms).slideX(begin: -0.08, end: 0),
+                valueColor: AppColors.primary,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _InfoCard(
+              child: _SimpleCard(
                 label: 'Despesas',
                 value: currency.format(provider.monthlyExpenses),
-                color: AppColors.danger,
-              ).animate().fadeIn(delay: 350.ms).slideX(begin: 0.08, end: 0),
+                valueColor: AppColors.danger,
+              ),
             ),
           ],
         ),
 
-        const SizedBox(height: 28),
+        const SizedBox(height: 32),
 
-        // Ações
         const Text(
-          'Ações',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
-        ).animate().fadeIn(delay: 400.ms),
-
-        const SizedBox(height: 12),
+          'Ações rápidas',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.text,
+          ),
+        ),
+        const SizedBox(height: 14),
 
         Row(
           children: [
-            Expanded(
-              child: _ActionButton(
-                icon: Icons.add_circle_outline,
-                label: 'Receita',
-                onTap: () {
-                  Navigator.of(context).push(
-                    AppTransitions.slideFromBottom(const AddTransactionScreen()),
-                  );
-                },
-              ).animate().fadeIn(delay: 450.ms).scale(begin: const Offset(0.92, 0.92)),
+            _QuickAction(
+              icon: Icons.add,
+              label: 'Receita',
+              onTap: () {
+                Navigator.of(context).push(
+                  AppTransitions.slideFromBottom(const AddTransactionScreen()),
+                );
+              },
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _ActionButton(
-                icon: Icons.remove_circle_outline,
-                label: 'Despesa',
-                onTap: () {
-                  Navigator.of(context).push(
-                    AppTransitions.slideFromBottom(const AddTransactionScreen()),
-                  );
-                },
-              ).animate().fadeIn(delay: 500.ms).scale(begin: const Offset(0.92, 0.92)),
+            const SizedBox(width: 12),
+            _QuickAction(
+              icon: Icons.remove,
+              label: 'Despesa',
+              onTap: () {
+                Navigator.of(context).push(
+                  AppTransitions.slideFromBottom(const AddTransactionScreen()),
+                );
+              },
+            ),
+            const SizedBox(width: 12),
+            _QuickAction(
+              icon: Icons.calendar_view_month,
+              label: 'Parcelas',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const InstallmentsScreen()),
+                );
+              },
+            ),
+            const SizedBox(width: 12),
+            _QuickAction(
+              icon: Icons.flag_outlined,
+              label: 'Metas',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const GoalsScreen()),
+                );
+              },
             ),
           ],
         ),
 
-        const SizedBox(height: 10),
+        const SizedBox(height: 32),
 
-        Row(
-          children: [
-            Expanded(
-              child: _ActionButton(
-                icon: Icons.calendar_view_month_outlined,
-                label: 'Parcelas',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const InstallmentsScreen()),
-                  );
-                },
-              ).animate().fadeIn(delay: 550.ms).scale(begin: const Offset(0.92, 0.92)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _ActionButton(
-                icon: Icons.flag_outlined,
-                label: 'Metas',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const GoalsScreen()),
-                  );
-                },
-              ).animate().fadeIn(delay: 600.ms).scale(begin: const Offset(0.92, 0.92)),
-            ),
-          ],
+        const Text(
+          'Organizar o mês',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.text,
+          ),
         ),
+        const SizedBox(height: 14),
 
-        const SizedBox(height: 10),
-
-        // Botão de análise de recorrentes
-        _ActionButton(
-          icon: Icons.analytics_outlined,
-          label: 'Gastos que se repetem',
+        _MenuTile(
+          icon: Icons.tv_outlined,
+          title: 'Planos de streaming',
+          subtitle: provider.totalStreaming > 0
+              ? currency.format(provider.totalStreaming)
+              : 'Netflix, Spotify...',
           onTap: () {
-            Navigator.of(context).push(
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MoneyItemsScreen(
+                  type: MoneyItemType.streaming,
+                  title: 'Planos de streaming',
+                  emptyText: 'Nenhum streaming cadastrado',
+                  icon: Icons.tv_outlined,
+                ),
+              ),
+            );
+          },
+        ),
+        _MenuTile(
+          icon: Icons.home_outlined,
+          title: 'Gastos fixos',
+          subtitle: provider.totalFixedExpenses > 0
+              ? currency.format(provider.totalFixedExpenses)
+              : 'Aluguel, internet...',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MoneyItemsScreen(
+                  type: MoneyItemType.fixedExpense,
+                  title: 'Gastos fixos',
+                  emptyText: 'Nenhum gasto fixo',
+                  icon: Icons.home_outlined,
+                ),
+              ),
+            );
+          },
+        ),
+        _MenuTile(
+          icon: Icons.flash_on_outlined,
+          title: 'Gastos extras',
+          subtitle: provider.totalExtraExpenses > 0
+              ? currency.format(provider.totalExtraExpenses)
+              : 'Imprevistos do mês',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MoneyItemsScreen(
+                  type: MoneyItemType.extraExpense,
+                  title: 'Gastos extras',
+                  emptyText: 'Nenhum gasto extra',
+                  icon: Icons.flash_on_outlined,
+                ),
+              ),
+            );
+          },
+        ),
+        _MenuTile(
+          icon: Icons.handshake_outlined,
+          title: 'Empréstimos a receber',
+          subtitle: provider.totalLoansToReceive > 0
+              ? currency.format(provider.totalLoansToReceive)
+              : 'Quem te deve',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MoneyItemsScreen(
+                  type: MoneyItemType.loanToReceive,
+                  title: 'Empréstimos a receber',
+                  emptyText: 'Ninguém te deve nada',
+                  icon: Icons.handshake_outlined,
+                ),
+              ),
+            );
+          },
+        ),
+        _MenuTile(
+          icon: Icons.shopping_bag_outlined,
+          title: 'Comprar no mês',
+          subtitle: provider.totalMonthlyNeeds > 0
+              ? currency.format(provider.totalMonthlyNeeds)
+              : 'Lista de necessidades',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MoneyItemsScreen(
+                  type: MoneyItemType.monthlyNeed,
+                  title: 'Necessidades do mês',
+                  emptyText: 'Lista vazia',
+                  icon: Icons.shopping_bag_outlined,
+                ),
+              ),
+            );
+          },
+        ),
+        _MenuTile(
+          icon: Icons.analytics_outlined,
+          title: 'Gastos que se repetem',
+          subtitle: 'Análise automática',
+          onTap: () {
+            Navigator.push(
+              context,
               MaterialPageRoute(builder: (_) => const RecurringAnalysisScreen()),
             );
           },
-        ).animate().fadeIn(delay: 650.ms).scale(begin: const Offset(0.92, 0.92)),
-
-        const SizedBox(height: 28),
-
-        // Próximos vencimentos
-        if (provider.futureExpenses.where((e) => !e.isPaid).isNotEmpty) ...[
-          const Text(
-            'Próximos vencimentos',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
-          ).animate().fadeIn(delay: 700.ms),
-          const SizedBox(height: 12),
-          ...provider.futureExpenses.where((e) => !e.isPaid).take(4).toList().asMap().entries.map((entry) {
-            final e = entry.value;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.danger,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(e.description, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.text)),
-                        Text(DateFormat('dd/MM').format(e.dueDate), style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    currency.format(e.amount),
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.danger),
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(delay: (750 + entry.key * 50).ms).slideY(begin: 0.1, end: 0);
-          }),
-        ],
+        ),
       ],
     );
   }
 }
 
-class _InfoCard extends StatelessWidget {
+class _SimpleCard extends StatelessWidget {
   final String label;
   final String value;
-  final Color color;
+  final Color valueColor;
 
-  const _InfoCard({required this.label, required this.value, required this.color});
+  const _SimpleCard({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -432,50 +489,104 @@ class _InfoCard extends StatelessWidget {
         children: [
           Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
           const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
+          Text(
+            value,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: valueColor),
+          ),
         ],
       ),
     );
   }
 }
 
-class _ActionButton extends StatelessWidget {
+class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Color? color;
 
-  const _ActionButton({
+  const _QuickAction({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 72,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: AppColors.text, size: 22),
+              const SizedBox(height: 8),
+              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            ],
+          ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color ?? AppColors.text, size: 24),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                color: color ?? AppColors.textMuted,
-                fontWeight: FontWeight.w500,
-              ),
+      ),
+    );
+  }
+}
+
+class _MenuTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _MenuTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            child: Row(
+              children: [
+                Icon(icon, color: AppColors.text, size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.text,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: AppColors.textMuted),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

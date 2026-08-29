@@ -6,6 +6,7 @@ import '../models/future_expense.dart';
 import '../models/transaction.dart';
 import '../models/goal.dart';
 import '../models/installment_purchase.dart';
+import '../models/money_item.dart';
 import '../services/storage_service.dart';
 
 class FinanceProvider extends ChangeNotifier {
@@ -18,10 +19,9 @@ class FinanceProvider extends ChangeNotifier {
   List<FutureExpense> futureExpenses = [];
   List<Goal> goals = [];
   List<InstallmentPurchase> installments = [];
+  List<MoneyItem> moneyItems = [];
 
   bool isLoading = true;
-
-  // ========== CÁLCULOS ==========
 
   double get totalBalance => accounts.fold(0.0, (sum, a) => sum + a.balance);
 
@@ -32,14 +32,10 @@ class FinanceProvider extends ChangeNotifier {
         .fold(0.0, (sum, e) => sum + e.amount);
   }
 
-  /// Próximas parcelas (ainda não pagas) — valor total restante
-  double get totalRemainingInstallments {
-    return installments
-        .where((i) => !i.isCompleted)
-        .fold(0.0, (sum, i) => sum + i.remainingAmount);
-  }
+  double get totalRemainingInstallments => installments
+      .where((i) => !i.isCompleted)
+      .fold(0.0, (sum, i) => sum + i.remainingAmount);
 
-  /// Parcelas do mês atual (compromisso deste mês)
   double get currentMonthInstallments {
     final now = DateTime.now();
     return installments.where((i) {
@@ -50,43 +46,74 @@ class FinanceProvider extends ChangeNotifier {
     }).fold(0.0, (sum, i) => sum + i.installmentValue);
   }
 
-  double get totalReservedInGoals {
-    return goals.where((g) => !g.isCompleted).fold(0.0, (sum, g) => sum + g.currentAmount);
-  }
+  double get totalReservedInGoals => goals
+      .where((g) => !g.isCompleted)
+      .fold(0.0, (sum, g) => sum + g.currentAmount);
 
-  /// Disponível Real = saldo - contas futuras - parcelas do mês - metas
-  double get realAvailableBalance {
-    return totalBalance - totalFutureExpenses - currentMonthInstallments - totalReservedInGoals;
-  }
+  double get totalStreaming => moneyItems
+      .where((e) => e.type == MoneyItemType.streaming && !e.isPaidOrReceived)
+      .fold(0.0, (s, e) => s + e.amount);
+
+  double get totalFixedExpenses => moneyItems
+      .where((e) => e.type == MoneyItemType.fixedExpense && !e.isPaidOrReceived)
+      .fold(0.0, (s, e) => s + e.amount);
+
+  double get totalExtraExpenses => moneyItems
+      .where((e) => e.type == MoneyItemType.extraExpense && !e.isPaidOrReceived)
+      .fold(0.0, (s, e) => s + e.amount);
+
+  double get totalLoansToReceive => moneyItems
+      .where((e) => e.type == MoneyItemType.loanToReceive && !e.isPaidOrReceived)
+      .fold(0.0, (s, e) => s + e.amount);
+
+  double get totalMonthlyNeeds => moneyItems
+      .where((e) => e.type == MoneyItemType.monthlyNeed && !e.isPaidOrReceived)
+      .fold(0.0, (s, e) => s + e.amount);
+
+  double get realAvailableBalance =>
+      totalBalance -
+      totalFutureExpenses -
+      currentMonthInstallments -
+      totalReservedInGoals -
+      totalStreaming -
+      totalFixedExpenses -
+      totalExtraExpenses -
+      totalMonthlyNeeds +
+      totalLoansToReceive;
 
   double get monthlyIncome {
     final now = DateTime.now();
     return transactions
-        .where((t) => t.type == TransactionType.income && t.date.month == now.month && t.date.year == now.year)
+        .where((t) =>
+            t.type == TransactionType.income &&
+            t.date.month == now.month &&
+            t.date.year == now.year)
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
   double get monthlyExpenses {
     final now = DateTime.now();
     return transactions
-        .where((t) => t.type == TransactionType.expense && t.date.month == now.month && t.date.year == now.year)
+        .where((t) =>
+            t.type == TransactionType.expense &&
+            t.date.month == now.month &&
+            t.date.year == now.year)
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
   double get dailyLimit {
-    final remainingDays = DateTime(DateTime.now().year, DateTime.now().month + 1, 0).day - DateTime.now().day + 1;
+    final remainingDays =
+        DateTime(DateTime.now().year, DateTime.now().month + 1, 0).day -
+            DateTime.now().day +
+            1;
     if (remainingDays <= 0 || realAvailableBalance <= 0) return 0;
     return realAvailableBalance / remainingDays;
   }
 
-  // ========== ANÁLISE DE GASTOS RECORRENTES ==========
-
-  /// Agrupa despesas por descrição parecida e detecta padrões
   List<RecurringInsight> get recurringInsights {
     final expenses = transactions.where((t) => t.type == TransactionType.expense).toList();
-    if (expenses.isEmpty) return [];
+    if (expenses.isEmpty) return <RecurringInsight>[];
 
-    // Agrupa por descrição normalizada
     final Map<String, List<Transaction>> groups = {};
     for (final t in expenses) {
       final key = t.description.trim().toLowerCase();
@@ -94,20 +121,16 @@ class FinanceProvider extends ChangeNotifier {
     }
 
     final insights = <RecurringInsight>[];
-
     for (final entry in groups.entries) {
       final list = entry.value;
-      if (list.length < 2) continue; // precisa repetir pelo menos 2x
-
+      if (list.length < 2) continue;
       list.sort((a, b) => a.date.compareTo(b.date));
       final avgAmount = list.fold(0.0, (s, t) => s + t.amount) / list.length;
-
-      // Intervalo médio entre ocorrências (em dias)
       double totalGap = 0;
       for (var i = 1; i < list.length; i++) {
         totalGap += list[i].date.difference(list[i - 1].date).inDays;
       }
-      final avgGap = list.length > 1 ? totalGap / (list.length - 1) : 0;
+      final avgGap = list.length > 1 ? totalGap / (list.length - 1) : 0.0;
 
       String frequency;
       if (avgGap <= 10) {
@@ -131,18 +154,14 @@ class FinanceProvider extends ChangeNotifier {
         totalSpent: list.fold(0.0, (s, t) => s + t.amount),
       ));
     }
-
-    // Ordena pelos que mais gastam
     insights.sort((a, b) => b.totalSpent.compareTo(a.totalSpent));
     return insights;
   }
 
-  // ========== LOAD ==========
+  List<MoneyItem> itemsOf(MoneyItemType type) =>
+      moneyItems.where((e) => e.type == type).toList();
 
   Future<void> loadData() async {
-    isLoading = true;
-    notifyListeners();
-
     accounts = await _storage.loadAccounts();
     categories = await _storage.loadCategories();
     cards = await _storage.loadCards();
@@ -150,6 +169,7 @@ class FinanceProvider extends ChangeNotifier {
     futureExpenses = await _storage.loadFutureExpenses();
     goals = await _storage.loadGoals();
     installments = await _storage.loadInstallments();
+    moneyItems = await _storage.loadMoneyItems();
 
     if (categories.isEmpty) _createDefaultCategories();
     if (accounts.isEmpty) _createDefaultAccounts();
@@ -180,8 +200,6 @@ class FinanceProvider extends ChangeNotifier {
     ];
     _storage.saveAccounts(accounts);
   }
-
-  // ========== TRANSAÇÕES ==========
 
   Future<void> addTransaction(Transaction transaction) async {
     transactions.add(transaction);
@@ -214,8 +232,6 @@ class FinanceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ========== CONTAS FUTURAS ==========
-
   Future<void> addFutureExpense(FutureExpense expense) async {
     futureExpenses.add(expense);
     await _storage.saveFutureExpenses(futureExpenses);
@@ -225,21 +241,20 @@ class FinanceProvider extends ChangeNotifier {
   Future<void> markFutureExpenseAsPaid(String id) async {
     final index = futureExpenses.indexWhere((e) => e.id == id);
     if (index != -1) {
+      final old = futureExpenses[index];
       futureExpenses[index] = FutureExpense(
-        id: futureExpenses[index].id,
-        description: futureExpenses[index].description,
-        amount: futureExpenses[index].amount,
-        dueDate: futureExpenses[index].dueDate,
-        categoryId: futureExpenses[index].categoryId,
-        accountId: futureExpenses[index].accountId,
+        id: old.id,
+        description: old.description,
+        amount: old.amount,
+        dueDate: old.dueDate,
+        categoryId: old.categoryId,
+        accountId: old.accountId,
         isPaid: true,
       );
       await _storage.saveFutureExpenses(futureExpenses);
       notifyListeners();
     }
   }
-
-  // ========== CARTÕES / CONTAS ==========
 
   Future<void> addCreditCard(CreditCard card) async {
     cards.add(card);
@@ -262,8 +277,6 @@ class FinanceProvider extends ChangeNotifier {
     }
   }
 
-  // ========== METAS ==========
-
   Future<void> addGoal(Goal goal) async {
     goals.add(goal);
     await _storage.saveGoals(goals);
@@ -282,7 +295,8 @@ class FinanceProvider extends ChangeNotifier {
   Future<void> removeFromGoal(String id, double amount) async {
     final index = goals.indexWhere((g) => g.id == id);
     if (index != -1) {
-      goals[index].currentAmount = (goals[index].currentAmount - amount).clamp(0.0, double.infinity);
+      goals[index].currentAmount =
+          (goals[index].currentAmount - amount).clamp(0.0, double.infinity);
       await _storage.saveGoals(goals);
       notifyListeners();
     }
@@ -293,8 +307,6 @@ class FinanceProvider extends ChangeNotifier {
     await _storage.saveGoals(goals);
     notifyListeners();
   }
-
-  // ========== PARCELAS ==========
 
   Future<void> addInstallment(InstallmentPurchase purchase) async {
     installments.add(purchase);
@@ -318,9 +330,31 @@ class FinanceProvider extends ChangeNotifier {
     await _storage.saveInstallments(installments);
     notifyListeners();
   }
+
+  Future<void> addMoneyItem(MoneyItem item) async {
+    moneyItems.add(item);
+    await _storage.saveMoneyItems(moneyItems);
+    notifyListeners();
+  }
+
+  Future<void> toggleMoneyItem(String id) async {
+    final index = moneyItems.indexWhere((e) => e.id == id);
+    if (index != -1) {
+      moneyItems[index] = moneyItems[index].copyWith(
+        isPaidOrReceived: !moneyItems[index].isPaidOrReceived,
+      );
+      await _storage.saveMoneyItems(moneyItems);
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteMoneyItem(String id) async {
+    moneyItems.removeWhere((e) => e.id == id);
+    await _storage.saveMoneyItems(moneyItems);
+    notifyListeners();
+  }
 }
 
-/// Insight de gasto recorrente
 class RecurringInsight {
   final String description;
   final int count;

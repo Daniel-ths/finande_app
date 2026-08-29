@@ -1,14 +1,17 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'providers/finance_provider.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // UI mais estável no start
+  // Inicializa formatação de data em português
+  await initializeDateFormatting('pt_BR', null);
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -36,7 +39,6 @@ class FinanceApp extends StatelessWidget {
         themeMode: ThemeMode.dark,
         home: const SplashScreen(),
         builder: (context, child) {
-          // Evita rebuilds estranhos de texto no boot
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
             child: child ?? const SizedBox.shrink(),

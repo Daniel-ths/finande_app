@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/transaction.dart';
 import '../providers/finance_provider.dart';
+import '../theme/app_theme.dart';
 
 class MonthlySheetScreen extends StatefulWidget {
   const MonthlySheetScreen({super.key});
@@ -41,12 +42,11 @@ class _MonthlySheetScreenState extends State<MonthlySheetScreen> {
 
     final Map<String, double> byCategory = {};
     for (final e in expenses) {
-      final cat = provider.categories.where((c) => c.id == e.categoryId).firstOrNull;
-      final name = cat?.name ?? 'Outros';
-      byCategory[name] = (byCategory[name] ?? 0) + e.amount;
+      CategoryName(provider, e.categoryId, byCategory, e.amount);
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Planilha Mensal')),
       body: Column(
         children: [
@@ -65,7 +65,7 @@ class _MonthlySheetScreenState extends State<MonthlySheetScreen> {
                 ),
                 Text(
                   DateFormat('MMMM yyyy', 'pt_BR').format(_selectedMonth).toUpperCase(),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.text),
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
@@ -82,33 +82,34 @@ class _MonthlySheetScreenState extends State<MonthlySheetScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Expanded(child: _SummaryBox(label: 'Receitas', value: currency.format(totalIncome), color: Colors.green)),
+                Expanded(child: _SummaryBox(label: 'Receitas', value: currency.format(totalIncome), color: AppColors.primary)),
                 const SizedBox(width: 8),
-                Expanded(child: _SummaryBox(label: 'Despesas', value: currency.format(totalExpense), color: Colors.red)),
+                Expanded(child: _SummaryBox(label: 'Despesas', value: currency.format(totalExpense), color: AppColors.danger)),
                 const SizedBox(width: 8),
-                Expanded(child: _SummaryBox(label: 'Saldo', value: currency.format(balance), color: balance >= 0 ? Colors.blue : Colors.orange)),
+                Expanded(child: _SummaryBox(label: 'Saldo', value: currency.format(balance), color: balance >= 0 ? AppColors.primary : AppColors.danger)),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          const Divider(),
+          const Divider(color: AppColors.border),
           Expanded(
             child: byCategory.isEmpty
-                ? const Center(child: Text('Nenhum lançamento neste mês'))
+                ? const Center(child: Text('Nenhum lançamento neste mês', style: TextStyle(color: AppColors.textMuted)))
                 : ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      const Text('Despesas por categoria', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text('Despesas por categoria', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.text)),
                       const SizedBox(height: 12),
                       ...byCategory.entries.map((entry) {
-                        return Card(
+                        return Container(
                           margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            title: Text(entry.key),
-                            trailing: Text(
-                              currency.format(entry.value),
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-                            ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
+                          child: Row(
+                            children: [
+                              Expanded(child: Text(entry.key, style: const TextStyle(color: AppColors.text))),
+                              Text(currency.format(entry.value), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.danger)),
+                            ],
                           ),
                         );
                       }),
@@ -118,6 +119,17 @@ class _MonthlySheetScreenState extends State<MonthlySheetScreen> {
         ],
       ),
     );
+  }
+
+  void CategoryName(FinanceProvider provider, String categoryId, Map<String, double> map, double amount) {
+    String name = 'Outros';
+    for (final c in provider.categories) {
+      if (c.id == categoryId) {
+        name = c.name;
+        break;
+      }
+    }
+    map[name] = (map[name] ?? 0) + amount;
   }
 }
 
@@ -132,10 +144,7 @@ class _SummaryBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10)),
       child: Column(
         children: [
           Text(label, style: TextStyle(fontSize: 12, color: color)),
