@@ -1,8 +1,10 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../models/credit_card.dart';
 import '../providers/finance_provider.dart';
+import '../theme/app_theme.dart';
 
 class CardsScreen extends StatelessWidget {
   const CardsScreen({super.key});
@@ -13,76 +15,125 @@ class CardsScreen extends StatelessWidget {
     final currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cartões'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showAddCardDialog(context, provider),
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.background,
       body: provider.cards.isEmpty
-          ? const Center(
-              child: Text(
-                'Nenhum cartão cadastrado.\nToque no + para adicionar.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
+          ? Center(
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.credit_card_outlined, size: 48, color: AppColors.textMuted),
+                  SizedBox(height: 16),
+                  Text(
+                    'Nenhum cartão cadastrado',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 15),
+                  ),
+                ],
+              ).animate().fadeIn(duration: 250.ms),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: provider.cards.length,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              itemCount: provider.cards.length + 1,
               itemBuilder: (context, index) {
+                if (index == provider.cards.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: GestureDetector(
+                      onTap: () => _showAddCardDialog(context, provider),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add, color: AppColors.primary, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Novo cartão',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                        .animate()
+                        .fadeIn(delay: (50 * index).ms, duration: 250.ms),
+                  );
+                }
+
                 final card = provider.cards[index];
-                final color = Color(int.parse(card.color.replaceFirst('#', '0xFF')));
                 final percentUsed = card.limit > 0 ? (card.used / card.limit) : 0.0;
 
-                return Card(
+                return Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: color.withOpacity(0.2),
-                              child: Icon(Icons.credit_card, color: color),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(card.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _InfoItem(label: 'Limite', value: currency.format(card.limit)),
-                            _InfoItem(label: 'Utilizado', value: currency.format(card.used), valueColor: Colors.red),
-                            _InfoItem(label: 'Disponível', value: currency.format(card.available), valueColor: Colors.green),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        LinearProgressIndicator(
-                          value: percentUsed.clamp(0.0, 1.0),
-                          backgroundColor: Colors.grey.shade200,
-                          color: percentUsed > 0.8 ? Colors.red : color,
-                          minHeight: 6,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Fechamento: dia ${card.closingDay}  •  Vencimento: dia ${card.dueDay}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                        ),
-                      ],
-                    ),
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                );
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceElevated,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.credit_card, color: AppColors.primary, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              card.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.text,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _CardInfo(label: 'Limite', value: currency.format(card.limit)),
+                          _CardInfo(label: 'Usado', value: currency.format(card.used), color: AppColors.danger),
+                          _CardInfo(label: 'Disponível', value: currency.format(card.available), color: AppColors.primary),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: percentUsed.clamp(0.0, 1.0),
+                          backgroundColor: AppColors.border,
+                          color: percentUsed > 0.8 ? AppColors.danger : AppColors.primary,
+                          minHeight: 5,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Fecha dia ${card.closingDay}  •  Vence dia ${card.dueDay}',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                )
+                    .animate()
+                    .fadeIn(delay: (70 * index).ms, duration: 450.ms)
+                    .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic);
               },
             ),
     );
@@ -97,20 +148,23 @@ class CardsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Novo Cartão'),
+        backgroundColor: AppColors.surface,
+        title: const Text('Novo Cartão', style: TextStyle(color: AppColors.text)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: 'Nome do cartão', border: OutlineInputBorder()),
+                style: const TextStyle(color: AppColors.text),
+                decoration: const InputDecoration(labelText: 'Nome do cartão'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: limitController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Limite', prefixText: 'R\$ ', border: OutlineInputBorder()),
+                style: const TextStyle(color: AppColors.text),
+                decoration: const InputDecoration(labelText: 'Limite', prefixText: 'R\$ '),
               ),
               const SizedBox(height: 12),
               Row(
@@ -119,7 +173,8 @@ class CardsScreen extends StatelessWidget {
                     child: TextField(
                       controller: closingController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Dia fechamento', border: OutlineInputBorder()),
+                      style: const TextStyle(color: AppColors.text),
+                      decoration: const InputDecoration(labelText: 'Fecha dia'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -127,7 +182,8 @@ class CardsScreen extends StatelessWidget {
                     child: TextField(
                       controller: dueController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Dia vencimento', border: OutlineInputBorder()),
+                      style: const TextStyle(color: AppColors.text),
+                      decoration: const InputDecoration(labelText: 'Vence dia'),
                     ),
                   ),
                 ],
@@ -136,7 +192,10 @@ class CardsScreen extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
+          ),
           FilledButton(
             onPressed: () {
               final name = nameController.text.trim();
@@ -162,20 +221,27 @@ class CardsScreen extends StatelessWidget {
   }
 }
 
-class _InfoItem extends StatelessWidget {
+class _CardInfo extends StatelessWidget {
   final String label;
   final String value;
-  final Color? valueColor;
+  final Color? color;
 
-  const _InfoItem({required this.label, required this.value, this.valueColor});
+  const _CardInfo({required this.label, required this.value, this.color});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: valueColor)),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            color: color ?? AppColors.text,
+          ),
+        ),
       ],
     );
   }
